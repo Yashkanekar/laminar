@@ -19,7 +19,10 @@ export function useStream() {
 
   const flushBufferToReact = useCallback(() => {
     if (bufferRef.current.length > 0) {
-      setText((prev) => prev + bufferRef.current);
+      const textToFlush = bufferRef.current;
+
+      setText((prev) => prev + textToFlush);
+
       bufferRef.current = "";
     }
     rAF_Id.current = null;
