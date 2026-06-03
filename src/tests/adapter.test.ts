@@ -56,6 +56,6 @@ async function runSSETest() {
   }
 }
 
-// runSSETest();
+runSSETest();
 
-// runTest();
+runTest();
