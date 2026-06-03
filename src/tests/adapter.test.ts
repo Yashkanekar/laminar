@@ -27,4 +27,35 @@ async function runTest() {
   }
 }
 
-runTest();
+function createMockSSEResponse() {
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+
+      controller.enqueue(encoder.encode('data: {"text": "Hello"'));
+
+      controller.enqueue(encoder.encode('}\n\ndata: {"text": " world"}\n\n'));
+
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream);
+}
+
+async function runSSETest() {
+  console.log("Starting Laminar SSE test...");
+  const mockRes = createMockSSEResponse();
+
+  const adapter = createStreamAdapter(mockRes);
+
+  for await (const token of adapter) {
+    console.log(token);
+  }
+}
+
+// runSSETest();
+
+// runTest();
