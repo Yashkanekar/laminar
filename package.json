@@ -1,18 +1,34 @@
 {
   "name": "laminar",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "A streaming UI library for React.",
   "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
-    "partial-json": "^0.1.7",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "partial-json": "^0.1.7"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
