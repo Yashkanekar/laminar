@@ -1,4 +1,3 @@
-// src/react/useStreamingJSON.ts
 import { useState, useRef, useCallback } from "react";
 import { parse } from "partial-json";
 import { createStreamAdapter } from "../core/adapter";
@@ -20,7 +19,7 @@ export function useStreamingJSON<T = any>() {
         const parsedObject = parse(bufferRef.current);
         setData(parsedObject as T);
       } catch (err) {
-        // If a chunk splits a primitive type completely unpredictably, we swallow the error and try again on the next frame.
+        // If a chunk splits a primitive type completely unpredictably, dont throw the error and try again on the next frame.
       }
     }
     rAF_Id.current = null;
@@ -52,7 +51,7 @@ export function useStreamingJSON<T = any>() {
           if (token.type === "text") {
             bufferRef.current += token.content;
 
-            // Schedule a UI repaint if one isn't already queued up
+            // Scheduling an UI repaint if one isn't already queued up
             if (!rAF_Id.current) {
               rAF_Id.current = requestAnimationFrame(flushBufferToReact);
             }

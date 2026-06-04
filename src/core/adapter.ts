@@ -1,5 +1,3 @@
-// src/core/adapter.ts
-
 import type { StreamToken } from "../types";
 
 export async function* createStreamAdapter(
@@ -27,17 +25,15 @@ export async function* createStreamAdapter(
         break;
       }
 
-      // Decode the new bytes and add them to our buffer
+      // Decoding the new bytes and adding them to the buffer.
       buffer += decoder.decode(value, { stream: true });
 
-      // Look for the SSE boundary; will be -1 if we don't have a full event yet
+      // Look for the SSE boundary; will be -1 if its not a full event yet
       let boundary = buffer.indexOf("\n\n");
 
       while (boundary !== -1) {
-        // Extract the full, complete event string
         const eventStr = buffer.slice(0, boundary).trim();
 
-        // Remove this event from the buffer so we don't process it again
         buffer = buffer.slice(boundary + 2);
 
         // Process the event if it's an SSE data payload
@@ -46,7 +42,7 @@ export async function* createStreamAdapter(
 
           if (dataPayload === "[DONE]") {
             yield { type: "done", content: "" };
-            return; // Exit completely
+            return; 
           }
 
           try {
@@ -59,7 +55,7 @@ export async function* createStreamAdapter(
             }
           } catch (e) {
             console.warn("Laminar: Failed to parse SSE JSON", dataPayload);
-            // don't yield an error here, because the steam should continue even if one chunk is slightly malformed.
+            // not yeilding an error here because .
           }
         }
 
