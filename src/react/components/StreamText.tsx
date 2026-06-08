@@ -1,22 +1,24 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useStream } from "../useStream";
 
 export interface StreamTextProps {
   fetcher: () => Promise<Response>;
   onFinish?: () => void;
+  extractText?: (json: any) => string | undefined;
 }
 
-export function StreamText({ fetcher, onFinish }: StreamTextProps) {
-  const { text, status, error, start } = useStream();
-
-  const hasStarted = useRef(false);
+export function StreamText({
+  fetcher,
+  onFinish,
+  extractText,
+}: StreamTextProps) {
+  const { text, status, error, start } = useStream(); 
+  
 
   useEffect(() => {
-    if (!hasStarted.current) {
-      hasStarted.current = true;
-      start(fetcher());
-    }
-  }, [fetcher, start]);
+    start(fetcher, extractText);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (status === "done") {
@@ -39,7 +41,6 @@ export function StreamText({ fetcher, onFinish }: StreamTextProps) {
             height: "15px",
             backgroundColor: "currentColor",
             marginLeft: "4px",
-            // animation: "pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite",
           }}
         />
       )}

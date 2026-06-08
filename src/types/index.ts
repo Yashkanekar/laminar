@@ -1,4 +1,4 @@
-export type StreamToken = {
-  type: "text" | "json" | "error" | "done";
-  content: string;
-};
+export type StreamToken =
+  | { type: "text"; content: string }
+  | { type: "done"; content: "" }
+  | { type: "error"; content: string };

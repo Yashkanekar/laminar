@@ -22,7 +22,7 @@ export default defineConfig({
       fileName: (format) => `index.${format === "es" ? "js" : "cjs"}`,
     },
     rollupOptions: {
-      external: ["react", "react-dom", "partial-json"],
+      external: ["react", "react-dom", "react/jsx-runtime", "partial-json"],
       output: {
         globals: {
           react: "React",

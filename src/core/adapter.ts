@@ -2,8 +2,10 @@ import type { StreamToken } from "../types";
 
 export async function* createStreamAdapter(
   response: Response,
-
-  extractText: (json: any) => string | undefined = (json) => json.text, // Defaults to assuming the backend just sends { text: "..." }
+  //currently defaulting to OpenAI's streaming format, which nests the text content in choices[0].delta.content
+  //TODO: make this more flexible to support a wider variety of streaming formats without needing a custom adapter function for each one
+  extractText: (json: any) => string | undefined = (json) =>
+    json.choices?.[0]?.delta?.content,
 ): AsyncGenerator<StreamToken> {
   if (!response.body) {
     yield { type: "error", content: "No response body found." };
@@ -12,8 +14,6 @@ export async function* createStreamAdapter(
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
-
-  // This buffer holds incomplete chunks until a double newline is found (\n\n)
   let buffer = "";
 
   try {
@@ -25,42 +25,43 @@ export async function* createStreamAdapter(
         break;
       }
 
-      // Decoding the new bytes and adding them to the buffer.
       buffer += decoder.decode(value, { stream: true });
 
-      // Look for the SSE boundary; will be -1 if its not a full event yet
-      let boundary = buffer.indexOf("\n\n");
+      const lines = buffer.split(/\r?\n/);
+      // console.log("Current buffer split into lines:", { lines });
 
-      while (boundary !== -1) {
-        const eventStr = buffer.slice(0, boundary).trim();
+      // Saving the last incomplete line back to the buffer
+      buffer = lines.pop() || "";
+      // console.log("Current buffer after splitting into lines:", { buffer });
 
-        buffer = buffer.slice(boundary + 2);
+      for (const line of lines) {
+        const cleanedLine = line.trim();
+        if (!cleanedLine) continue;
 
-        // Process the event if it's an SSE data payload
-        if (eventStr.startsWith("data: ")) {
-          const dataPayload = eventStr.slice(6); // Removing 'data: '
+        if (cleanedLine.startsWith("data: ")) {
+          const dataPayload = cleanedLine.slice(6).trim();
 
           if (dataPayload === "[DONE]") {
             yield { type: "done", content: "" };
-            return; 
+            return;
           }
 
           try {
-            // Because we waited for \n\n, this JSON is guaranteed to be complete
             const parsed = JSON.parse(dataPayload);
             const text = extractText(parsed);
-
+            // console.log("TEXT:", text);
             if (text) {
               yield { type: "text", content: text };
+            } else if (!text) {
+              console.error(
+                "Laminar Warning: extractText returned undefined for data payload. This may be a formatting issue with the stream or an incorrect extractText function. Please check the extractText function you passed once again",
+                dataPayload,
+              );
             }
           } catch (e) {
             console.warn("Laminar: Failed to parse SSE JSON", dataPayload);
-            // not yeilding an error here because .
           }
         }
-
-        // Check if there's another event waiting in the remaining buffer
-        boundary = buffer.indexOf("\n\n");
       }
     }
   } finally {

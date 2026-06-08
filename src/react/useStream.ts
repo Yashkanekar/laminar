@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { createStreamAdapter } from "../core/adapter";
 
 export type StreamStatus =
@@ -15,14 +15,21 @@ export function useStream() {
 
   const bufferRef = useRef("");
   const rAF_Id = useRef<number | null>(null);
-  const isCancelledRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // When the component unmounts, forcefully kill the network stream and unlocks the reader.
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const flushBufferToReact = useCallback(() => {
     if (bufferRef.current.length > 0) {
       const textToFlush = bufferRef.current;
-
       setText((prev) => prev + textToFlush);
-
       bufferRef.current = "";
     }
     rAF_Id.current = null;
@@ -30,50 +37,52 @@ export function useStream() {
 
   const start = useCallback(
     async (
-      response: Response | Promise<Response>,
+      fetcherFn: () => Promise<Response>,
       extractText?: (json: any) => string | undefined,
     ) => {
       setText("");
       setError(null);
       setStatus("streaming");
       bufferRef.current = "";
-      isCancelledRef.current = false;
 
       if (rAF_Id.current) cancelAnimationFrame(rAF_Id.current);
 
-      try {
-        // Resolve the response in case the dev passed a raw fetch() promise
-        const resolvedResponse = await Promise.resolve(response);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
 
+      const currentAbortController = new AbortController();
+      abortControllerRef.current = currentAbortController;
+
+      try {
+        const resolvedResponse = await fetcherFn();
         const adapter = createStreamAdapter(resolvedResponse, extractText);
 
         for await (const token of adapter) {
-          // If the user called stop(), break out of the loop immediately
-          if (isCancelledRef.current) {
+          if (currentAbortController.signal.aborted) {
             setStatus("cancelled");
             break;
           }
 
           if (token.type === "text") {
-            //if token is text then we add it to the buffer and schedule a rAF callback to flush it to React state on the next frame.
             bufferRef.current += token.content;
             if (!rAF_Id.current) {
               rAF_Id.current = requestAnimationFrame(flushBufferToReact);
             }
           } else if (token.type === "done") {
-            // The stream ended. Force one last flush to get remaining characters.
-            flushBufferToReact();
+            flushBufferToReact(); //if the stream has ended, then flushing any remaining buffer immediately
             setStatus("done");
           } else if (token.type === "error") {
             setError(token.content);
             setStatus("error");
           }
         }
-      } catch (err) {
-        if (!isCancelledRef.current) {
-          setError(
-            err instanceof Error ? err.message : "Unknown React Hook Error",
-          );
+      } catch (err: any) {
+        if (
+          err.name !== "AbortError" &&
+          !currentAbortController.signal.aborted
+        ) {
+          setError(err instanceof Error ? err.message : "Unknown Stream Error");
           setStatus("error");
         }
       }
@@ -82,8 +91,9 @@ export function useStream() {
   );
 
   const stop = useCallback(() => {
-    isCancelledRef.current = true;
-    //force a flush here so the user sees exactly where it stopped
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     flushBufferToReact();
     setStatus("cancelled");
   }, [flushBufferToReact]);

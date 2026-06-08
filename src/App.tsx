@@ -46,10 +46,12 @@ export default function App() {
       >
         {submittedPrompt ? (
           <StreamText
-            // The key prop tells React to destroy and recreate the component (resetting its state) ONLY when the prompt changes.
-            key={submittedPrompt}
+            key={submittedPrompt} // important to pass the key prop as it tells React to destroy and recreate the component (resetting its state) ONLY when the prompt changes.
             fetcher={() => mockSSEFetch(submittedPrompt)}
             onFinish={() => setIsGenerating(false)}
+            extractText={(json) => {
+              return json.text;
+            }}
           />
         ) : (
           <p
