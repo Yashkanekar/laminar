@@ -1,8 +1,8 @@
 {
-  "name": "laminar",
-  "private": true,
+  "name": "@yashkanekar/laminar-ui",
+  "private": false,
   "version": "0.1.0",
-  "description": "A streaming UI library for React.",
+  "description": "A React library for building generative UIs from streaming LLM / backend responses",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

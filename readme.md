@@ -1,4 +1,4 @@
-# Laminar
+# Laminar-ui
 
 A React library for building generative UIs from streaming LLM / backend responses.
 
@@ -47,7 +47,7 @@ Laminar distinguishes three terminal states:
 ## Installation
 
 ```bash
-npm install laminar
+npm install laminar-ui
 ```
 
 (Requires react >= 18.0 and react-dom as peer dependencies.)
@@ -65,7 +65,7 @@ Always remember to pass `{stream: true} ` option in the request body of your fet
 
 ```javascript
 import { useState } from "react";
-import { StreamText } from "laminar";
+import { StreamText } from "laminar-ui";
 
 export default function ChatBubble() {
   const [prompt, setPrompt] = useState("Tell me a story...");
@@ -82,7 +82,7 @@ export default function ChatBubble() {
       body: JSON.stringify({
         model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: submittedPrompt }],
-        stream: true, // ######IMP: making sure that the response is streamed for laminar to work ####
+        stream: true, // ######IMP: making sure that the response is streamed for laminar-ui to work ####
       }),
     });
   };
@@ -135,7 +135,7 @@ const { text, status, error, start, stop } = useStream();
 Example:
 
 ```javascript
-import { useStream } from "laminar";
+import { useStream } from "laminar-ui";
 
 export default function CustomController() {
   const { text, status, error, start, stop } = useStream();
@@ -199,7 +199,7 @@ const { data, status, error, start, stop } = useStreamingJSON<WeatherData>();
 Example:
 
 ```js
-import { useStreamingJSON } from "laminar";
+import { useStreamingJSON } from "laminar-ui";
 
 type WeatherData = {
   city: string;
@@ -267,7 +267,7 @@ If you are building your own custom hooks, or want to use Laminar's robust SSE p
 Example:
 
 ```javascript
-import { createStreamAdapter } from "laminar";
+import { createStreamAdapter } from "laminar-ui";
 
 async function processStream() {
   const response = await fetch("...");
@@ -301,8 +301,8 @@ async function processStream() {
 Issues and PRs are welcome.
 
 ```bash
-git clone https://github.com/Yashkanekar/laminar
-cd laminar
+git clone https://github.com/Yashkanekar/laminar-ui
+cd laminar-ui
 npm install
 npm run dev
 ```
