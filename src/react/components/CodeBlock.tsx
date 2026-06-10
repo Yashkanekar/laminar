@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 
+let globalHighlighter: any = null;
+let initPromise: Promise<any> | null = null;
+
 type CodeBlockProps = {
   lang?: string;
   code: string;
@@ -13,31 +16,38 @@ export const CodeBlock = ({ lang, code }: CodeBlockProps) => {
     let isMounted = true;
 
     if (lang) {
-      import("shiki")
-        .then(async (shiki) => {
-          try {
-            const highlighter = await shiki.createHighlighter({
+      const loadHighlighter = async () => {
+        try {
+          if (!initPromise) {
+            const shiki = await import("shiki");
+            initPromise = shiki.createHighlighter({
               themes: ["vitesse-dark"],
               langs: [lang],
             });
-
-            const codeHtml = highlighter.codeToHtml(code, {
-              lang,
-              theme: "vitesse-dark",
-            });
-
-            if (isMounted) setHtml(codeHtml);
-          } catch (internalError) {
-            // Catch errors if the LLM provides a language Shiki doesn't support
-            console.warn(
-              `Laminar: Shiki could not highlight lang '${lang}'`,
-              internalError,
-            );
           }
-        })
-        .catch((loadError) => {
-          console.warn(`Laminar: Failed to dynamically load Shiki`, loadError);
-        });
+
+          globalHighlighter = await initPromise;
+
+          const loadedLangs = globalHighlighter.getLoadedLanguages();
+          if (!loadedLangs.includes(lang)) {
+            await globalHighlighter.loadLanguage(lang);
+          }
+
+          const codeHtml = globalHighlighter.codeToHtml(code, {
+            lang,
+            theme: "vitesse-dark",
+          });
+
+          if (isMounted) setHtml(codeHtml);
+        } catch (error) {
+          console.warn(
+            `Laminar: Shiki failed to highlight lang '${lang}'`,
+            error,
+          );
+        }
+      };
+
+      loadHighlighter();
     }
 
     return () => {
@@ -53,6 +63,7 @@ export const CodeBlock = ({ lang, code }: CodeBlockProps) => {
 
   return (
     <div
+      className="laminar-code-block"
       style={{
         position: "relative",
         marginBottom: "1.5rem",
@@ -78,12 +89,10 @@ export const CodeBlock = ({ lang, code }: CodeBlockProps) => {
         {copied ? "Copied!" : "Copy"}
       </button>
 
-      {/* If Shiki hasn't loaded yet, fallback to the standard pre block */}
       {html ? (
         <div
-          className="laminar-code-block"
           dangerouslySetInnerHTML={{ __html: html }}
-          style={{ overflowX: "auto", borderRadius: "8px" }}
+          style={{ borderRadius: "8px", overflow: "hidden" }}
         />
       ) : (
         <pre
@@ -94,6 +103,7 @@ export const CodeBlock = ({ lang, code }: CodeBlockProps) => {
             borderRadius: "8px",
             overflowX: "auto",
             minHeight: "3rem",
+            margin: 0,
             transition: "height 0.1s ease-out",
           }}
         >

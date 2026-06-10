@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { MarkdownRenderer, type ComponentsMap } from "./MarkdownRenderer";
 import { useStream } from "../hooks/useStream";
 import "../../styles/laminar.css";
+import { LaminarErrorBoundary } from "./LaminarErrorBoundary";
 type StreamMarkdownProps = {
   fetcher: () => Promise<Response>;
   onFinish?: () => void;
@@ -27,5 +28,9 @@ export const StreamMarkdown = ({
     }
   }, [status, onFinish]);
 
-  return <MarkdownRenderer text={text} components={components} />;
+  return (
+    <LaminarErrorBoundary fallbackText={text}>
+      <MarkdownRenderer text={text} components={components} />
+    </LaminarErrorBoundary>
+  );
 };
