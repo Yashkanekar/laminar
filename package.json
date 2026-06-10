@@ -24,7 +24,11 @@
     "dist"
   ],
   "dependencies": {
-    "partial-json": "^0.1.7"
+    "@types/mdast": "^4.0.4",
+    "partial-json": "^0.1.7",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

@@ -49,16 +49,11 @@ export async function* createStreamAdapter(
           try {
             const parsed = JSON.parse(dataPayload);
             const text = extractText(parsed);
-            // console.log("TEXT:", text);
-            if (text) {
+            if (typeof text === "string" && text.length > 0) {
               yield { type: "text", content: text };
-            } else if (!text) {
-              console.error(
-                "Laminar Warning: extractText returned undefined for data payload. This may be a formatting issue with the stream or an incorrect extractText function. Please check the extractText function you passed once again",
-                dataPayload,
-              );
             }
           } catch (e) {
+            // warn if the payload isn't valid JSON at all.
             console.warn("Laminar: Failed to parse SSE JSON", dataPayload);
           }
         }
