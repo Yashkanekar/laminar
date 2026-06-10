@@ -1,0 +1,23 @@
+:root {
+  --lm-text: #333333;
+  --lm-heading: #111111;
+  --lm-border: #eaeaea;
+  --lm-inline-code-bg: #f0f0f0;
+  --lm-code-bg: #1e1e1e;
+  --lm-code-text: #d4d4d4;
+  --lm-link: #0366d6;
+  --lm-blockquote-text: #666666;
+  --lm-blockquote-border: #dddddd;
+  --lm-del: #888888;
+}
+
+.laminar-markdown {
+  color: var(--lm-text);
+  line-height: 1.6;
+}
+
+.laminar-code-block pre {
+  padding: 1rem !important;
+  margin: 0;
+  font-size: 0.9em;
+}

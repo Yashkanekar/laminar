@@ -1,24 +1,49 @@
 import React, { useMemo } from "react";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
-import type { Root, RootContent } from "mdast";
 import remarkGfm from "remark-gfm";
+import type { Root, RootContent } from "mdast";
+import { CodeBlock } from "./CodeBlock";
+
+export type ComponentsMap = {
+  h1?: React.FC<{ children: React.ReactNode }>;
+  h2?: React.FC<{ children: React.ReactNode }>;
+  h3?: React.FC<{ children: React.ReactNode }>;
+  p?: React.FC<{ children: React.ReactNode }>;
+  a?: React.FC<{ href?: string; children: React.ReactNode }>;
+  code?: React.FC<{ inline: boolean; lang?: string; children: string }>;
+  table?: React.FC<{ children: React.ReactNode }>;
+};
 
 const processor = unified().use(remarkParse).use(remarkGfm);
 
-function renderNode(node: RootContent | Root, key: string): React.ReactNode {
+function renderNode(
+  node: RootContent | Root,
+  key: string,
+  components?: ComponentsMap,
+): React.ReactNode {
+  // Pre-calculate mapped children to clean up the switch statement
+  const mappedChildren =
+    "children" in node
+      ? node.children.map((child, i) =>
+          renderNode(child, `${key}-${i}`, components),
+        )
+      : null;
+
   switch (node.type) {
     case "root":
       return (
         <div key={key} className="laminar-markdown">
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
+          {mappedChildren}
         </div>
       );
 
     case "paragraph":
+      if (components?.p)
+        return <components.p key={key}>{mappedChildren}</components.p>;
       return (
         <p key={key} style={{ marginBottom: "1rem" }}>
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
+          {mappedChildren}
         </p>
       );
 
@@ -26,9 +51,15 @@ function renderNode(node: RootContent | Root, key: string): React.ReactNode {
       return <span key={key}>{node.value}</span>;
 
     case "heading":
-      const HeadingTag = `h${node.depth}` as keyof JSX.IntrinsicElements;
+      const depthObj = { 1: "h1", 2: "h2", 3: "h3" } as const;
+      const hType = depthObj[node.depth as keyof typeof depthObj];
 
-      // browser default sizes for headings
+      if (hType && components?.[hType]) {
+        const CustomHeading = components[hType]!;
+        return <CustomHeading key={key}>{mappedChildren}</CustomHeading>;
+      }
+
+      const HeadingTag = `h${node.depth}` as keyof JSX.IntrinsicElements;
       const defaultSizes: Record<number, string> = {
         1: "2em",
         2: "1.5em",
@@ -38,43 +69,40 @@ function renderNode(node: RootContent | Root, key: string): React.ReactNode {
         6: "0.67em",
       };
 
-      const fontSize = defaultSizes[node.depth] || "1em";
-
       return (
         <HeadingTag
           key={key}
           style={{
-            fontSize,
+            fontSize: defaultSizes[node.depth] || "1em",
             fontWeight: "bold",
+            color: "var(--lm-heading)",
             marginTop: "1em",
             marginBottom: "0.5em",
             lineHeight: 1.2,
           }}
         >
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
+          {mappedChildren}
         </HeadingTag>
       );
 
     case "strong":
-      return (
-        <strong key={key}>
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
-        </strong>
-      );
+      return <strong key={key}>{mappedChildren}</strong>;
 
     case "emphasis":
-      return (
-        <em key={key}>
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
-        </em>
-      );
+      return <em key={key}>{mappedChildren}</em>;
 
     case "inlineCode":
+      if (components?.code)
+        return (
+          <components.code key={key} inline={true}>
+            {node.value}
+          </components.code>
+        );
       return (
         <code
           key={key}
           style={{
-            background: "#f0f0f0",
+            background: "var(--lm-inline-code-bg)",
             padding: "0.2em 0.4em",
             borderRadius: "4px",
           }}
@@ -84,74 +112,62 @@ function renderNode(node: RootContent | Root, key: string): React.ReactNode {
       );
 
     case "code":
+      if (components?.code)
+        return (
+          <components.code
+            key={key}
+            inline={false}
+            lang={node.lang || undefined}
+          >
+            {node.value}
+          </components.code>
+        );
       return (
-        <pre
-          key={key}
-          style={{
-            background: "#1e1e1e",
-            color: "#d4d4d4",
-            padding: "1rem",
-            borderRadius: "8px",
-            overflowX: "auto",
-            minHeight: "3rem",
-            transition: "height 0.1s ease-out",
-          }}
-        >
-          {node.lang && (
-            <div
-              style={{
-                fontSize: "0.8em",
-                color: "#888",
-                marginBottom: "0.5em",
-              }}
-            >
-              {node.lang}
-            </div>
-          )}
-          <code>{node.value}</code>
-        </pre>
+        <CodeBlock key={key} lang={node.lang || undefined} code={node.value} />
       );
 
     case "list":
       const ListTag = node.ordered ? "ol" : "ul";
       return (
         <ListTag key={key} style={{ paddingLeft: "2rem" }}>
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
+          {mappedChildren}
         </ListTag>
       );
 
     case "listItem":
-      return (
-        <li key={key}>
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
-        </li>
-      );
+      return <li key={key}>{mappedChildren}</li>;
 
     case "blockquote":
       return (
         <blockquote
           key={key}
           style={{
-            borderLeft: "4px solid #ddd",
+            borderLeft: "4px solid var(--lm-blockquote-border)",
             paddingLeft: "1rem",
-            color: "#666",
+            color: "var(--lm-blockquote-text)",
             margin: "1rem 0",
           }}
         >
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
+          {mappedChildren}
         </blockquote>
       );
 
     case "link":
+      if (components?.a)
+        return (
+          <components.a key={key} href={node.url}>
+            {mappedChildren}
+          </components.a>
+        );
       return (
         <a
           key={key}
           href={node.url}
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: "#0366d6", textDecoration: "underline" }}
+          style={{ color: "var(--lm-link)", textDecoration: "underline" }}
         >
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
+          {mappedChildren}
         </a>
       );
 
@@ -161,13 +177,15 @@ function renderNode(node: RootContent | Root, key: string): React.ReactNode {
           key={key}
           style={{
             border: "none",
-            borderTop: "1px solid #eaeaea",
+            borderTop: "1px solid var(--lm-border)",
             margin: "2rem 0",
           }}
         />
       );
 
     case "table":
+      if (components?.table)
+        return <components.table key={key}>{mappedChildren}</components.table>;
       return (
         <div key={key} style={{ overflowX: "auto", marginBottom: "1.5rem" }}>
           <table
@@ -178,13 +196,16 @@ function renderNode(node: RootContent | Root, key: string): React.ReactNode {
               tableLayout: "fixed",
             }}
           >
-            <tbody>
-              {node.children.map((child, i) =>
-                renderNode(child, `${key}-${i}`),
-              )}
-            </tbody>
+            <tbody>{mappedChildren}</tbody>
           </table>
         </div>
+      );
+
+    case "tableRow":
+      return (
+        <tr key={key} style={{ borderBottom: "1px solid var(--lm-border)" }}>
+          {mappedChildren}
+        </tr>
       );
 
     case "tableCell":
@@ -193,32 +214,23 @@ function renderNode(node: RootContent | Root, key: string): React.ReactNode {
           key={key}
           style={{
             padding: "0.75rem 1rem",
-            border: "1px solid #eaeaea",
+            border: "1px solid var(--lm-border)",
             wordWrap: "break-word",
             overflowWrap: "break-word",
           }}
         >
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
+          {mappedChildren}
         </td>
-      );
-
-    case "tableRow":
-      return (
-        <tr key={key} style={{ borderBottom: "1px solid #eaeaea" }}>
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
-        </tr>
       );
 
     case "delete":
       return (
-        <del key={key} style={{ color: "#888" }}>
-          {node.children.map((child, i) => renderNode(child, `${key}-${i}`))}
+        <del key={key} style={{ color: "var(--lm-del)" }}>
+          {mappedChildren}
         </del>
       );
 
     default:
-      // Fallback for unsupported nodes
-      console.warn(`Laminar: Unsupported markdown node type: ${node.type}`);
       return null;
   }
 }
@@ -263,11 +275,16 @@ function patchMarkdown(rawText: string): string {
   return healedText;
 }
 
-export const MarkdownRenderer = ({ text }: { text: string }) => {
+export const MarkdownRenderer = ({
+  text,
+  components,
+}: {
+  text: string;
+  components?: ComponentsMap;
+}) => {
   const ast = useMemo(() => {
     try {
       const safeText = patchMarkdown(text);
-
       return processor.parse(safeText);
     } catch (e) {
       console.error("Laminar Markdown Parse Error:", e);
@@ -275,5 +292,5 @@ export const MarkdownRenderer = ({ text }: { text: string }) => {
     }
   }, [text]);
 
-  return renderNode(ast, "root");
+  return renderNode(ast, "root", components);
 };

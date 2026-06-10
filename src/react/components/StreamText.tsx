@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useStream } from "../useStream";
+import { useStream } from "../hooks/useStream";
 
 export interface StreamTextProps {
   fetcher: () => Promise<Response>;
@@ -12,8 +12,7 @@ export function StreamText({
   onFinish,
   extractText,
 }: StreamTextProps) {
-  const { text, status, error, start } = useStream(); 
-  
+  const { text, status, error, start } = useStream();
 
   useEffect(() => {
     start(fetcher, extractText);

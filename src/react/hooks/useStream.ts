@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { createStreamAdapter } from "../core/adapter";
+import { createStreamAdapter } from "../../core/adapter";
 
 export type StreamStatus =
   | "idle"

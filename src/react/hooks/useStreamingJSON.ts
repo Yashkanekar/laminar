@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { parse } from "partial-json";
 import { createStreamAdapter } from "../core/adapter";
-import type { StreamStatus } from "./useStream";
+import type { StreamStatus } from "./hooks/useStream";
 
 export function useStreamingJSON<T = any>() {
   const [data, setData] = useState<T | null>(null);
