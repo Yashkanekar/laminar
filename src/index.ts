@@ -1,10 +1,13 @@
-
 export { createStreamAdapter } from "./core/adapter";
 
 export type { StreamToken } from "./types";
-export type { StreamStatus } from "./react/useStream";
+export type { StreamStatus } from "./react/hooks/useStream";
+export type { ComponentsMap } from "./react/components/MarkdownRenderer";
 
-export { useStream } from "./react/useStream";
-export { useStreamingJSON } from "./react/useStreamingJSON";
+// Hooks
+export { useStream } from "./react/hooks/useStream";
+export { useStreamingJSON } from "./react/hooks/useStreamingJSON";
 
+// Components
+export { StreamMarkdown } from "./react/components/StreamMarkdown";
 export { StreamText } from "./react/components/StreamText";
