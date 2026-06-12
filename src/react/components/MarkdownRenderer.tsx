@@ -17,6 +17,15 @@ export type ComponentsMap = {
 
 const processor = unified().use(remarkParse).use(remarkGfm);
 
+const DEFAULT_HEADING_SIZES: Record<number, string> = {
+  1: "2em",
+  2: "1.5em",
+  3: "1.17em",
+  4: "1em",
+  5: "0.83em",
+  6: "0.67em",
+};
+
 function renderNode(
   node: RootContent | Root,
   key: string,
@@ -50,7 +59,7 @@ function renderNode(
     case "text":
       return <span key={key}>{node.value}</span>;
 
-    case "heading":
+    case "heading": {
       const depthObj = { 1: "h1", 2: "h2", 3: "h3" } as const;
       const hType = depthObj[node.depth as keyof typeof depthObj];
 
@@ -59,21 +68,13 @@ function renderNode(
         return <CustomHeading key={key}>{mappedChildren}</CustomHeading>;
       }
 
-      const HeadingTag = `h${node.depth}` as keyof JSX.IntrinsicElements;
-      const defaultSizes: Record<number, string> = {
-        1: "2em",
-        2: "1.5em",
-        3: "1.17em",
-        4: "1em",
-        5: "0.83em",
-        6: "0.67em",
-      };
+      const HeadingTag = `h${node.depth}` as React.ElementType;
 
       return (
         <HeadingTag
           key={key}
           style={{
-            fontSize: defaultSizes[node.depth] || "1em",
+            fontSize: DEFAULT_HEADING_SIZES[node.depth] || "1em",
             fontWeight: "bold",
             color: "var(--lm-heading)",
             marginTop: "1em",
@@ -84,6 +85,7 @@ function renderNode(
           {mappedChildren}
         </HeadingTag>
       );
+    }
 
     case "strong":
       return <strong key={key}>{mappedChildren}</strong>;
@@ -126,13 +128,14 @@ function renderNode(
         <CodeBlock key={key} lang={node.lang || undefined} code={node.value} />
       );
 
-    case "list":
+    case "list": {
       const ListTag = node.ordered ? "ol" : "ul";
       return (
         <ListTag key={key} style={{ paddingLeft: "2rem" }}>
           {mappedChildren}
         </ListTag>
       );
+    }
 
     case "listItem":
       return <li key={key}>{mappedChildren}</li>;

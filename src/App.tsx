@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { StreamText } from "./react/components/StreamText";
 import { mockSSEFetch } from "./utils/mockBackend";
-import { TestHarness } from "./react/TestHarness";
 
 export default function App() {
   const [prompt, setPrompt] = useState("Enter example text here to stream");
