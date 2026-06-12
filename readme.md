@@ -2,7 +2,8 @@
 
 **Render streaming LLM output in React. Correctly.**
 
-LLMs stream text as a live feed of raw chunks. Mid-stream that output is broken i.e. unclosed code fences, half-finished tables, dangling `**` and `_` tokens. Most markdown parsers aren't built for this. Laminar is.
+LLMs stream text as a live feed of raw chunks. Mid-stream that output is broken — unclosed code fences, half-finished tables, dangling \*\* and
+\_ tokens. Laminar handles incomplete markdown and JSON streams correctly, so your UI never breaks while the response is still arriving.
 
 It handles the full output layer: parsing the SSE stream, healing torn markdown on every frame, and rendering it cleanly while tokens are still arriving.
 
