@@ -1,6 +1,25 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createStreamAdapter } from "../../core/adapter";
 
+type RAFCallback = (timestamp: number) => void;
+type RAFHandle = ReturnType<typeof setTimeout> | number;
+
+// A simple cross-environment requestAnimationFrame and cancelAnimationFrame implementation. In a browser environment, it uses the native requestAnimationFrame. In a non-browser environment (like Node.js), it falls back to using setTimeout with a 16ms delay to approximate 60fps.
+const raf = (cb: RAFCallback): RAFHandle => {
+  if (typeof window === "undefined") {
+    return setTimeout(() => cb(Date.now()), 16);
+  }
+  return window.requestAnimationFrame(cb);
+};
+
+const caf = (id: RAFHandle): void => {
+  if (typeof window === "undefined") {
+    clearTimeout(id as ReturnType<typeof setTimeout>);
+    return;
+  }
+  window.cancelAnimationFrame(id as number);
+};
+
 export type StreamStatus =
   | "idle"
   | "streaming"
@@ -14,14 +33,17 @@ export function useStream() {
   const [error, setError] = useState<string | null>(null);
 
   const bufferRef = useRef("");
-  const rAF_Id = useRef<number | null>(null);
+  const rAF_Id = useRef<RAFHandle | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // When the component unmounts, forcefully kill the network stream and unlocks the reader.
+  // When component unmounts, stop any ongoing streams and rAF callbacks to prevent memory leaks and React state updates on unmounted components.
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+      }
+      if (rAF_Id.current) {
+        caf(rAF_Id.current);
       }
     };
   }, []);
@@ -45,7 +67,7 @@ export function useStream() {
       setStatus("streaming");
       bufferRef.current = "";
 
-      if (rAF_Id.current) cancelAnimationFrame(rAF_Id.current);
+      if (rAF_Id.current) caf(rAF_Id.current);
 
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -67,10 +89,10 @@ export function useStream() {
           if (token.type === "text") {
             bufferRef.current += token.content;
             if (!rAF_Id.current) {
-              rAF_Id.current = requestAnimationFrame(flushBufferToReact);
+              rAF_Id.current = raf(flushBufferToReact);
             }
           } else if (token.type === "done") {
-            flushBufferToReact(); //if the stream has ended, then flushing any remaining buffer immediately
+            flushBufferToReact();
             setStatus("done");
           } else if (token.type === "error") {
             setError(token.content);
@@ -78,13 +100,9 @@ export function useStream() {
           }
         }
       } catch (err: any) {
-        if (
-          err.name !== "AbortError" &&
-          !currentAbortController.signal.aborted
-        ) {
-          setError(err instanceof Error ? err.message : "Unknown Stream Error");
-          setStatus("error");
-        }
+        if (err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : "Unknown Stream Error");
+        setStatus("error");
       }
     },
     [flushBufferToReact],

@@ -1,7 +1,26 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { parse } from "partial-json";
 import { createStreamAdapter } from "../../core/adapter";
 import type { StreamStatus } from "./useStream";
+
+type RAFCallback = (timestamp: number) => void;
+type RAFHandle = ReturnType<typeof setTimeout> | number;
+
+// A simple cross-environment requestAnimationFrame and cancelAnimationFrame implementation. In a browser environment, it uses the native requestAnimationFrame. In a non-browser environment (like Node.js), it falls back to using setTimeout with a 16ms delay to approximate 60fps.
+const raf = (cb: RAFCallback): RAFHandle => {
+  if (typeof window === "undefined") {
+    return setTimeout(() => cb(Date.now()), 16);
+  }
+  return window.requestAnimationFrame(cb);
+};
+
+const caf = (id: RAFHandle): void => {
+  if (typeof window === "undefined") {
+    clearTimeout(id as ReturnType<typeof setTimeout>);
+    return;
+  }
+  window.cancelAnimationFrame(id as number);
+};
 
 export function useStreamingJSON<T = any>() {
   const [data, setData] = useState<T | null>(null);
@@ -9,17 +28,28 @@ export function useStreamingJSON<T = any>() {
   const [error, setError] = useState<string | null>(null);
 
   const bufferRef = useRef("");
-  const rAF_Id = useRef<number | null>(null);
-  const isCancelledRef = useRef(false);
+  const rAF_Id = useRef<RAFHandle | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // When component unmounts, stop any ongoing streams and rAF callbacks to prevent memory leaks and React state updates on unmounted components.
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (rAF_Id.current) {
+        caf(rAF_Id.current);
+      }
+    };
+  }, []);
 
   const flushBufferToReact = useCallback(() => {
     if (bufferRef.current.length > 0) {
       try {
-        // partial-json evaluates the broken string string, closes any open quotes/brackets/braces, and returns a valid JavaScript object.
         const parsedObject = parse(bufferRef.current);
         setData(parsedObject as T);
       } catch (err) {
-        // If a chunk splits a primitive type completely unpredictably, dont throw the error and try again on the next frame.
+        // Silent catch for partial parsing
       }
     }
     rAF_Id.current = null;
@@ -27,33 +57,37 @@ export function useStreamingJSON<T = any>() {
 
   const start = useCallback(
     async (
-      response: Response | Promise<Response>,
+      fetcherFn: () => Promise<Response>,
       extractText?: (json: any) => string | undefined,
     ) => {
       setData(null);
       setError(null);
       setStatus("streaming");
       bufferRef.current = "";
-      isCancelledRef.current = false;
 
-      if (rAF_Id.current) cancelAnimationFrame(rAF_Id.current);
+      if (rAF_Id.current) caf(rAF_Id.current);
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const currentAbortController = new AbortController();
+      abortControllerRef.current = currentAbortController;
 
       try {
-        const resolvedResponse = await Promise.resolve(response);
+        const resolvedResponse = await fetcherFn();
         const adapter = createStreamAdapter(resolvedResponse, extractText);
 
         for await (const token of adapter) {
-          if (isCancelledRef.current) {
+          if (currentAbortController.signal.aborted) {
             setStatus("cancelled");
             break;
           }
 
           if (token.type === "text") {
             bufferRef.current += token.content;
-
-            // Scheduling an UI repaint if one isn't already queued up
             if (!rAF_Id.current) {
-              rAF_Id.current = requestAnimationFrame(flushBufferToReact);
+              rAF_Id.current = raf(flushBufferToReact);
             }
           } else if (token.type === "done") {
             flushBufferToReact();
@@ -63,20 +97,21 @@ export function useStreamingJSON<T = any>() {
             setStatus("error");
           }
         }
-      } catch (err) {
-        if (!isCancelledRef.current) {
-          setError(
-            err instanceof Error ? err.message : "Unknown JSON Hook Error",
-          );
-          setStatus("error");
-        }
+      } catch (err: any) {
+        if (err.name === "AbortError") return;
+        setError(
+          err instanceof Error ? err.message : "Unknown JSON Hook Error",
+        );
+        setStatus("error");
       }
     },
     [flushBufferToReact],
   );
 
   const stop = useCallback(() => {
-    isCancelledRef.current = true;
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     flushBufferToReact();
     setStatus("cancelled");
   }, [flushBufferToReact]);
