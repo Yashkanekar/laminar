@@ -2,7 +2,7 @@
   "name": "laminar-ui",
   "private": false,
   "version": "0.1.0",
-  "description": "A React library for building generative UIs from streaming LLM / backend responses",
+  "description": "A React library for rendering UIs from streaming LLM / backend responses",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -50,5 +50,20 @@
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
     "vite-plugin-dts": "^5.0.2"
-  }
+  },
+  "keywords": [
+    "react",
+    "llm",
+    "streaming",
+    "markdown",
+    "ai",
+    "chatgpt",
+    "anthropic",
+    "openai",
+    "stream",
+    "sse",
+    "chat",
+    "gpt",
+    "generative-ui"
+  ]
 }

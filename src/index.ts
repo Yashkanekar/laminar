@@ -11,3 +11,4 @@ export { useStreamingJSON } from "./react/hooks/useStreamingJSON";
 // Components
 export { StreamMarkdown } from "./react/components/StreamMarkdown";
 export { StreamText } from "./react/components/StreamText";
+export { MarkdownRenderer } from "./react/components/MarkdownRenderer";
