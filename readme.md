@@ -1,9 +1,8 @@
 # Laminar UI
 
-**Render streaming LLM output in React. Correctly.**
+**Render streaming LLM output in React.**
 
-LLMs stream text as a live feed of raw chunks. Mid-stream that output is broken — unclosed code fences, half-finished tables, dangling \*\* and
-\_ tokens. Laminar handles incomplete markdown and JSON streams correctly, so your UI never breaks while the response is still arriving.
+LLMs stream text as a live feed of raw chunks. Mid-stream that output is broken containing unclosed code fences, half-finished tables, dangling \*\* and "\_" tokens. Laminar handles incomplete markdown and JSON streams correctly, so your UI never breaks while the response is still arriving.
 
 It handles the full output layer: parsing the SSE stream, healing torn markdown on every frame, and rendering it cleanly while tokens are still arriving.
 
@@ -36,6 +35,7 @@ import { StreamMarkdown } from "laminar-ui";
     fetch("/api/chat", {
       method: "POST",
       body: JSON.stringify({ message: input }),
+      stream: true, // important to make the response streaming as laminar only handles streaming responses.
     })
   }
   onFinish={() => console.log("Stream complete")}
@@ -77,6 +77,32 @@ Override any rendered element with your own:
 ```
 
 **Available overrides:** `h1` `h2` `h3` `p` `a` `code` `table`
+
+---
+
+## StreamText
+
+A lightweight alternative to `StreamMarkdown` for plain text output. Use this
+when the LLM response doesn't contain markdown, only simple prose, single-line
+answers, or any output where markdown rendering adds unnecessary overhead.
+
+```tsx
+import { StreamText } from "laminar-ui";
+
+<StreamText
+  fetcher={() =>
+    fetch("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({ message: input }),
+      stream: true,
+    })
+  }
+  onFinish={() => console.log("Stream complete")}
+/>;
+```
+
+Renders the raw text stream as-is with no markdown parsing or syntax
+highlighting. If you need markdown, use `StreamMarkdown` instead.
 
 ---
 
@@ -126,9 +152,9 @@ type Recipe = {
 const { data, status, start } = useStreamingJSON<Recipe>();
 
 // Start streaming
-start(fetch("/api/generate-recipe", { method: "POST" }));
+start(() => fetch("/api/generate-recipe", { method: "POST" }));
 
-// Render progressively — title appears before ingredients are done
+// Render progressively; title appears before ingredients are done
 <h1>{data?.title}</h1>
 <ul>
   {data?.ingredients?.map((item, i) => <li key={i}>{item}</li>)}
@@ -189,7 +215,7 @@ Already using `useChat` for message state? Laminar just replaces the rendering p
 
 ```tsx
 import { useChat } from "ai/react";
-import { StreamMarkdown } from "laminar-ui";
+import { MarkdownRenderer } from "laminar-ui";
 
 function Chat() {
   const { messages, input, handleSubmit, handleInputChange } = useChat();
@@ -198,9 +224,11 @@ function Chat() {
     <>
       {messages.map((msg) => (
         <div key={msg.id}>
-          {msg.role === "assistant"
-            ? <StreamMarkdown fetcher={...} />
-            : <p>{msg.content}</p>}
+          {msg.role === "assistant" ? (
+            <MarkdownRenderer text={msg.content} />
+          ) : (
+            <p>{msg.content}</p>
+          )}
         </div>
       ))}
       <form onSubmit={handleSubmit}>
