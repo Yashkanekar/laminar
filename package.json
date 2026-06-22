@@ -1,7 +1,7 @@
 {
   "name": "laminar-ui",
   "private": false,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A React library for rendering UIs from streaming LLM / backend responses",
   "type": "module",
   "main": "./dist/index.cjs",
