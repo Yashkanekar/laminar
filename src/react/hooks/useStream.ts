@@ -59,7 +59,7 @@ export function useStream() {
 
   const start = useCallback(
     async (
-      fetcherFn: () => Promise<Response>,
+      fetcherFn: Promise<Response> | (() => Promise<Response>),
       extractText?: (json: any) => string | undefined,
     ) => {
       setText("");
@@ -77,7 +77,8 @@ export function useStream() {
       abortControllerRef.current = currentAbortController;
 
       try {
-        const resolvedResponse = await fetcherFn();
+        const resolvedResponse =
+          typeof fetcherFn === "function" ? await fetcherFn() : await fetcherFn;
         const adapter = createStreamAdapter(resolvedResponse, extractText);
 
         for await (const token of adapter) {

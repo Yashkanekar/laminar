@@ -57,7 +57,7 @@ export function useStreamingJSON<T = any>() {
 
   const start = useCallback(
     async (
-      fetcherFn: () => Promise<Response>,
+      fetcherFn: Promise<Response> | (() => Promise<Response>),
       extractText?: (json: any) => string | undefined,
     ) => {
       setData(null);
@@ -75,7 +75,8 @@ export function useStreamingJSON<T = any>() {
       abortControllerRef.current = currentAbortController;
 
       try {
-        const resolvedResponse = await fetcherFn();
+        const resolvedResponse =
+          typeof fetcherFn === "function" ? await fetcherFn() : await fetcherFn;
         const adapter = createStreamAdapter(resolvedResponse, extractText);
 
         for await (const token of adapter) {
