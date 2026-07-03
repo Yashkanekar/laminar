@@ -142,27 +142,76 @@ function Chat() {
 
 When your LLM returns structured JSON instead of prose. You get a live, partially-hydrated JavaScript object on every frame and fields appear as they arrive, before the stream is complete.
 
-https://github.com/user-attachments/assets/420464dc-f714-4dd7-9953-8fbd61eab4b0
+https://github.com/user-attachments/assets/63b01b8d-cf27-4da0-8bf5-257944edb411
 
 ```tsx
 import { useStreamingJSON } from "laminar-ui";
 
-type Recipe = {
-  title: string;
-  ingredients: string[];
-  steps: string[];
-};
+const extractOpenAIText = (json) => json?.choices?.[0]?.delta?.content;
 
-const { data, status, start } = useStreamingJSON<Recipe>();
+function fetchRecipeStream(dish) {
+  return fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `<your api key here>`,
+    },
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      stream: true,
+      messages: [
+        {
+          role: "system",
+          content: 'Respond ONLY with raw JSON: { "title": string, "time": number, "ingredients": string[], "steps": string[] }',
+        },
+        { role: "user", content: `Recipe for `${dish}`.` },
+      ],
+    }),
+  });
+}
 
-// Start streaming
-start(() => fetch("/api/generate-recipe", { method: "POST" }));
+export function Recipes() {
+  const { data, status, start } = useStreamingJSON();
+  const [dish,setDish] = useState("")
+  const isStreaming = status === "streaming";
 
-// Render progressively; title appears before ingredients are done
-<h1>{data?.title}</h1>
-<ul>
-  {data?.ingredients?.map((item, i) => <li key={i}>{item}</li>)}
-</ul>
+  return (
+    <div>
+      <h2>Generative UI</h2>
+      <input type="text" value={dish} onChange={(e)=> setDish(e.target.value)}/>
+      <button
+        onClick={() => start(fetchRecipeStream(dish), extractOpenAIText)}
+        disabled={isStreaming}
+      >
+        {isStreaming ? "Streaming..." : "Generate"}
+      </button>
+
+      {/* Renders fields as soon as the keys stream in */}
+      {data && (
+        <div>
+          {data.title && <h3>{data.title}</h3>}
+          {data.time && <p>⏱ {data.time} min</p>}
+          {data.ingredients && (
+            <>
+              <h4>Ingredients</h4>
+              <ul>
+                {data.ingredients.map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </>
+          )}
+          {data.steps && (
+            <>
+              <h4>Steps</h4>
+              <ol>
+                {data.steps.map((step, i) => <li key={i}>{step}</li>)}
+              </ol>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 ```
 
 Uses [`partial-json`](https://github.com/nicolo-ribaudo/partial-json) internally to safely parse incomplete JSON on every frame without throwing.
