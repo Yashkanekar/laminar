@@ -13,45 +13,43 @@ export const CodeBlock = ({ lang, code }: CodeBlockProps) => {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (!lang) return;
     let isMounted = true;
 
-    if (lang) {
-      const loadHighlighter = async () => {
-        try {
-          if (!initPromise) {
-            const shiki = await import("shiki");
-            initPromise = shiki.createHighlighter({
-              themes: ["vitesse-dark"],
-              langs: [lang],
-            });
-          }
-
-          globalHighlighter = await initPromise;
-
-          const loadedLangs = globalHighlighter.getLoadedLanguages();
-          if (!loadedLangs.includes(lang)) {
-            await globalHighlighter.loadLanguage(lang);
-          }
-
-          const codeHtml = globalHighlighter.codeToHtml(code, {
-            lang,
-            theme: "vitesse-dark",
+    const timer = setTimeout(async () => {
+      try {
+        if (!initPromise) {
+          const shiki = await import("shiki");
+          initPromise = shiki.createHighlighter({
+            themes: ["vitesse-dark"],
+            langs: [],
           });
-
-          if (isMounted) setHtml(codeHtml);
-        } catch (error) {
-          console.warn(
-            `Laminar: Shiki failed to highlight lang '${lang}'`,
-            error,
-          );
         }
-      };
 
-      loadHighlighter();
-    }
+        globalHighlighter = await initPromise;
+
+        const loadedLangs = globalHighlighter.getLoadedLanguages();
+        if (!loadedLangs.includes(lang)) {
+          await globalHighlighter.loadLanguage(lang);
+        }
+
+        const codeHtml = globalHighlighter.codeToHtml(code, {
+          lang,
+          theme: "vitesse-dark",
+        });
+
+        if (isMounted) setHtml(codeHtml);
+      } catch (error) {
+        console.warn(
+          `Laminar: Shiki failed to highlight lang '${lang}'`,
+          error,
+        );
+      }
+    }, 80);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
   }, [lang, code]);
 

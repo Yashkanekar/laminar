@@ -51,6 +51,14 @@
     "vite": "^8.0.12",
     "vite-plugin-dts": "^5.0.2"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yashkanekar/laminar-ui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Yashkanekar/laminar-ui/issues"
+  },
+  "homepage": "https://github.com/Yashkanekar/laminar-ui#readme",
   "keywords": [
     "react",
     "llm",
