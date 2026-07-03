@@ -6,11 +6,7 @@ LLMs stream text as a live feed of raw chunks. Mid-stream that output is broken 
 
 It handles the full output layer: parsing the SSE stream, healing torn markdown on every frame, and rendering it cleanly while tokens are still arriving.
 
-
-https://github.com/user-attachments/assets/420464dc-f714-4dd7-9953-8fbd61eab4b0
-
-
-
+https://github.com/user-attachments/assets/db0f9ef0-7f46-4a12-be53-b29ac917b980
 
 ```bash
 npm install laminar-ui
@@ -146,7 +142,7 @@ function Chat() {
 
 When your LLM returns structured JSON instead of prose. You get a live, partially-hydrated JavaScript object on every frame and fields appear as they arrive, before the stream is complete.
 
-https://github.com/user-attachments/assets/db0f9ef0-7f46-4a12-be53-b29ac917b980
+https://github.com/user-attachments/assets/420464dc-f714-4dd7-9953-8fbd61eab4b0
 
 ```tsx
 import { useStreamingJSON } from "laminar-ui";
